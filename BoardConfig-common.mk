@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+ANDROID_TOP := $(shell pwd)
 
 TARGET_BOARD_PLATFORM := sdm845
 TARGET_BOARD_INFO_FILE := device/google/crosshatch/board-info.txt
@@ -58,7 +59,7 @@ BOARD_BOOT_HEADER_VERSION := 1
 BOARD_MKBOOTIMG_ARGS += --header_version $(BOARD_BOOT_HEADER_VERSION)
 
 # DTBO partition definitions
-BOARD_PREBUILT_DTBOIMAGE := device/google/crosshatch-kernel/dtbo.img
+TARGET_NEEDS_DTBOIMAGE := true
 BOARD_DTBOIMG_PARTITION_SIZE := 8388608
 
 TARGET_NO_BOOTLOADER ?= true
@@ -144,6 +145,18 @@ ifeq ($(HOST_OS),linux)
     endif
   endif
 endif
+
+# Kernel
+TARGET_KERNEL_CLANG_VERSION := 10.0
+TARGET_KERNEL_CLANG_PATH := $(ANDROID_TOP)/prebuilts/clang/host/$(HOST_OS)-x86/$(TARGET_KERNEL_CLANG_VERSION)/bin
+TARGET_KERNEL_USE_LLD := true
+KERNEL_TOOLCHAIN_PREFIX := aarch64-linux-android-
+TARGET_KERNEL_SOURCE := kernel/google/crosshatch
+TARGET_KERNEL_CONFIG := benzo_defconfig
+TARGET_KERNEL_ARCH := arm64
+TARGET_KERNEL_HEADER_ARCH := arm64
+TARGET_COMPILE_WITH_MSM_KERNEL := true
+BOARD_KERNEL_IMAGE_NAME := Image.lz4-dtb
 
 # Camera
 TARGET_USES_AOSP := true
