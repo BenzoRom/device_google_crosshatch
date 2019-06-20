@@ -5,6 +5,8 @@ include $(CLEAR_VARS)
 
 json_c_TOP := $(LOCAL_PATH)
 
+CONFIGURE_CFLAGS += -Wno-unused-parameter
+
 JSON_C_BUILT_SOURCES := Android.mk
 
 JSON_C_BUILT_SOURCES := $(patsubst %, $(abspath $(json_c_TOP))/%, $(JSON_C_BUILT_SOURCES))
