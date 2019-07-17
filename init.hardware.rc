@@ -80,18 +80,16 @@ on init && property:vendor.skip.init=0
 
     # Boot time fs tune
     write /sys/block/sda/queue/iostats 0
-    write /sys/block/sda/queue/scheduler cfq
-    write /sys/block/sda/queue/iosched/slice_idle 0
-    write /sys/block/sda/queue/read_ahead_kb 2048
+    write /sys/block/sda/queue/scheduler maple
+    write /sys/block/sda/queue/read_ahead_kb 64
     write /sys/block/sda/queue/nr_requests 256
     write /sys/block/sdf/queue/iostats 0
-    write /sys/block/sdf/queue/scheduler cfq
-    write /sys/block/sdf/queue/iosched/slice_idle 0
-    write /sys/block/sdf/queue/read_ahead_kb 2048
+    write /sys/block/sdf/queue/scheduler maple
+    write /sys/block/sdf/queue/read_ahead_kb 64
     write /sys/block/sdf/queue/nr_requests 256
-    write /sys/block/dm-0/queue/read_ahead_kb 2048
-    write /sys/block/dm-1/queue/read_ahead_kb 2048
-    write /sys/block/dm-2/queue/read_ahead_kb 2048
+    write /sys/block/dm-0/queue/read_ahead_kb 64
+    write /sys/block/dm-1/queue/read_ahead_kb 64
+    write /sys/block/dm-2/queue/read_ahead_kb 64
 
     # Disable UFS powersaving
     write /sys/devices/platform/soc/${ro.boot.bootdevice}/clkgate_enable 0
@@ -121,11 +119,43 @@ on init && property:vendor.skip.init=0
     write /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor schedutil
     write /sys/devices/system/cpu/cpu0/cpufreq/schedutil/up_rate_limit_us 500
     write /sys/devices/system/cpu/cpu0/cpufreq/schedutil/down_rate_limit_us 20000
+    write /sys/devices/system/cpu/cpu0/cpufreq/schedutil/hispeed_freq 1766400
+    write /sys/devices/system/cpu/cpu0/cpufreq/schedutil/hispeed_load 85
+    write /sys/devices/system/cpu/cpu0/cpufreq/schedutil/iowait_boost_enable 1
+    write /sys/devices/system/cpu/cpu0/cpufreq/schedutil/pl 1
+    write /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq 576000
+    write /sys/devices/system/cpu/cpufreq/policy0/scaling_min_freq 576000
 
     # configure governor settings for big cluster
     write /sys/devices/system/cpu/cpu4/cpufreq/scaling_governor schedutil
     write /sys/devices/system/cpu/cpu4/cpufreq/schedutil/up_rate_limit_us 500
     write /sys/devices/system/cpu/cpu4/cpufreq/schedutil/down_rate_limit_us 20000
+    write /sys/devices/system/cpu/cpu4/cpufreq/schedutil/hispeed_freq 2803200
+    write /sys/devices/system/cpu/cpu4/cpufreq/schedutil/hispeed_load 85
+    write /sys/devices/system/cpu/cpu4/cpufreq/schedutil/iowait_boost_enable 1
+    write /sys/devices/system/cpu/cpu4/cpufreq/schedutil/pl 1
+    write /sys/devices/system/cpu/cpu4/cpufreq/scaling_min_freq 825000
+    write /sys/devices/system/cpu/cpufreq/policy4/scaling_min_freq 825000
+
+    # core_ctl
+    write /sys/devices/system/cpu/cpu4/core_ctl/min_cpus 2
+    write /sys/devices/system/cpu/cpu4/core_ctl/offline_delay_ms 100
+    write /sys/devices/system/cpu/cpu4/core_ctl/task_thres 3
+
+    # sched_load_boost
+    write /sys/devices/system/cpu/cpu0/sched_load_boost -6
+    write /sys/devices/system/cpu/cpu1/sched_load_boost -6
+    write /sys/devices/system/cpu/cpu2/sched_load_boost -6
+    write /sys/devices/system/cpu/cpu3/sched_load_boost -6
+    write /sys/devices/system/cpu/cpu4/sched_load_boost -6
+    write /sys/devices/system/cpu/cpu5/sched_load_boost -6
+    write /sys/devices/system/cpu/cpu6/sched_load_boost -6
+    write /sys/devices/system/cpu/cpu7/sched_load_boost -6
+
+    # Sched tuneables
+    write /proc/sys/kernel/sched_walt_rotate_big_tasks 1
+    write /proc/sys/kernel/sched_min_task_util_for_boost 51
+    write /proc/sys/kernel/sched_min_task_util_for_colocation 35
 
     # set default schedTune value for foreground/top-app
     write /dev/stune/foreground/schedtune.prefer_idle 1
@@ -268,7 +298,7 @@ on late-fs
     # Mount RW partitions which need run fsck
     mount_all /vendor/etc/fstab.${ro.boot.hardware.platform} --late
     # Boot time fs tune
-    write /sys/block/dm-3/queue/read_ahead_kb 2048
+    write /sys/block/dm-3/queue/read_ahead_kb 64
 
     # Required for time_daemon
     mkdir /persist/time 0770 system system
@@ -279,6 +309,9 @@ on late-fs
 on post-fs
     # Disable sched autogroup
     write /proc/sys/kernel/sched_autogroup_enabled 0
+
+    # Disable sched stats
+    write /proc/sys/kernel/sched_schedstats 0
 
     # set RLIMIT_MEMLOCK to 64MB
     setrlimit 8 67108864 67108864
@@ -527,6 +560,9 @@ on boot
     # WLAN debug access
     chown system system /d/icnss/stats
 
+    # Disable binder debug
+    write /sys/module/binder/parameters/debug_mask 0
+
 service init-radio-sh /vendor/bin/init.radio.sh
     class late_start
     user radio
@@ -594,20 +630,6 @@ on property:sys.boot_completed=1
     write /dev/cpuset/application/performance/cpus 4-5
     write /dev/cpuset/application/background/cpus 0-1
     write /dev/cpuset/application/cpus 0-1,4-5
-
-    # Runtime fs tuning: as we have init boottime setting and kernel patch setting
-    # default readahead to 2048KB. We should adjust the setting upon boot_complete
-    # for runtime performance
-    write /sys/block/sda/queue/read_ahead_kb 128
-    write /sys/block/sda/queue/nr_requests 128
-    write /sys/block/sda/queue/iostats 1
-    write /sys/block/sdf/queue/read_ahead_kb 128
-    write /sys/block/sdf/queue/nr_requests 128
-    write /sys/block/sdf/queue/iostats 1
-    write /sys/block/dm-0/queue/read_ahead_kb 128
-    write /sys/block/dm-1/queue/read_ahead_kb 128
-    write /sys/block/dm-2/queue/read_ahead_kb 128
-    write /sys/block/dm-3/queue/read_ahead_kb 128
 
     # QCOM FG SRAM dump for dumpstate
     chown system system /d/fg/sram/data
