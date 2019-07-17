@@ -1,0 +1,7 @@
+allow priv_app sysfs_soc:file r_file_perms;
+allow priv_app sysfs_scsi_devices_0000:file r_file_perms;
+allow priv_app sysfs_soc:file r_file_perms;
+allow priv_app vendor_default_prop:file r_file_perms;
+
+get_prop(priv_app, vendor_default_prop)
+get_prop(priv_app, cnd_prop)
