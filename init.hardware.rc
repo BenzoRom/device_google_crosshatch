@@ -85,13 +85,11 @@ on init && property:vendor.skip.init=0
 
     # Boot time fs tune
     write /sys/block/sda/queue/iostats 0
-    write /sys/block/sda/queue/scheduler cfq
-    write /sys/block/sda/queue/iosched/slice_idle 0
+    write /sys/block/sda/queue/scheduler maple
     write /sys/block/sda/queue/read_ahead_kb 2048
     write /sys/block/sda/queue/nr_requests 256
     write /sys/block/sdf/queue/iostats 0
-    write /sys/block/sdf/queue/scheduler cfq
-    write /sys/block/sdf/queue/iosched/slice_idle 0
+    write /sys/block/sdf/queue/scheduler maple
     write /sys/block/sdf/queue/read_ahead_kb 2048
     write /sys/block/sdf/queue/nr_requests 256
     write /sys/block/dm-0/queue/read_ahead_kb 2048
@@ -129,11 +127,21 @@ on init && property:vendor.skip.init=0
     write /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor schedutil
     write /sys/devices/system/cpu/cpu0/cpufreq/schedutil/up_rate_limit_us 500
     write /sys/devices/system/cpu/cpu0/cpufreq/schedutil/down_rate_limit_us 20000
+    write /sys/devices/system/cpu/cpu0/cpufreq/schedutil/hispeed_freq 1766400
+    write /sys/devices/system/cpu/cpu0/cpufreq/schedutil/hispeed_load 85
+    write /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq 576000
 
     # configure governor settings for big cluster
     write /sys/devices/system/cpu/cpu4/cpufreq/scaling_governor schedutil
     write /sys/devices/system/cpu/cpu4/cpufreq/schedutil/up_rate_limit_us 500
     write /sys/devices/system/cpu/cpu4/cpufreq/schedutil/down_rate_limit_us 20000
+    write /sys/devices/system/cpu/cpu4/cpufreq/schedutil/hispeed_freq 2803200
+    write /sys/devices/system/cpu/cpu4/cpufreq/schedutil/hispeed_load 85
+    write /sys/devices/system/cpu/cpu4/cpufreq/scaling_min_freq 825600
+
+    # core_ctl
+    write /sys/devices/system/cpu/cpu4/core_ctl/min_cpus 2
+    write /sys/devices/system/cpu/cpu4/core_ctl/offline_delay_ms 100
 
     # set default schedTune value for foreground/top-app
     write /dev/stune/foreground/schedtune.prefer_idle 1
@@ -223,6 +231,12 @@ on init && property:vendor.skip.init=0
     setprop vendor.thermal.hw_mode -prod
     setprop vendor.thermal.config "thermal_info_config.json"
 
+    # Disable ipc logging
+    write /sys/kernel/debug/ipc_logging/ctrl_all 1
+
+    # BPF Just In Time compiler
+    write /proc/sys/net/core/bpf_jit_enable 1
+
 on late-init
     write /sys/devices/virtual/thermal/tz-by-name/fps-therm-adc/mode enabled
     chown system system /sys/devices/virtual/thermal/tz-by-name/fps-therm-monitor/trip_point_0_temp
@@ -293,6 +307,9 @@ on late-fs
 on post-fs
     # Disable sched autogroup
     write /proc/sys/kernel/sched_autogroup_enabled 0
+
+    # Disable sched stats
+    write /proc/sys/kernel/sched_schedstats 0
 
     # set RLIMIT_MEMLOCK to 64MB
     setrlimit 8 67108864 67108864
@@ -547,6 +564,9 @@ on boot
     # WLAN debug access
     chown system system /d/icnss/stats
 
+    # Disable binder debug
+    write /sys/module/binder/parameters/debug_mask 0
+
 service init-radio-sh /vendor/bin/init.radio.sh
     class late_start
     user radio
@@ -632,10 +652,8 @@ on property:sys.boot_completed=1
     # for runtime performance
     write /sys/block/sda/queue/read_ahead_kb 128
     write /sys/block/sda/queue/nr_requests 128
-    write /sys/block/sda/queue/iostats 1
     write /sys/block/sdf/queue/read_ahead_kb 128
     write /sys/block/sdf/queue/nr_requests 128
-    write /sys/block/sdf/queue/iostats 1
     write /sys/block/dm-0/queue/read_ahead_kb 128
     write /sys/block/dm-1/queue/read_ahead_kb 128
     write /sys/block/dm-2/queue/read_ahead_kb 128
@@ -678,6 +696,15 @@ on property:sys.boot_completed=1
     chmod 0660 /sys/kernel/debug/tracing/instances/pixel-trace/tracing_on
     write /sys/kernel/debug/tracing/instances/pixel-trace/buffer_size_kb 64
     write /sys/kernel/debug/tracing/instances/pixel-trace/events/mm_event/enable 1
+
+    # Wifi HAL: Only log errors
+    setprop log.tag.WifiHAL E
+
+    # SQLite: Only log errors
+    setprop log.tag.SQLiteLog E
+
+    # stats_log: Only log errors
+    setprop log.tag.stats_log E
 
 on property:sys.shutdown.requested=*
     stop per_proxy

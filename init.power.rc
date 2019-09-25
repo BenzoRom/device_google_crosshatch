@@ -20,7 +20,7 @@ on property:sys.boot_completed=1
     write /sys/class/devfreq/soc:qcom,cpubw/polling_interval 50
     write /sys/class/devfreq/soc:qcom,cpubw/bw_hwmon/mbps_zones "2288 4577 6500 8132 9155 10681"
     write /sys/class/devfreq/soc:qcom,cpubw/bw_hwmon/sample_ms 4
-    write /sys/class/devfreq/soc:qcom,cpubw/bw_hwmon/io_percent 40
+    write /sys/class/devfreq/soc:qcom,cpubw/bw_hwmon/io_percent 50
     write /sys/class/devfreq/soc:qcom,cpubw/bw_hwmon/hist_memory 20
     write /sys/class/devfreq/soc:qcom,cpubw/bw_hwmon/hyst_length 10
     write /sys/class/devfreq/soc:qcom,cpubw/bw_hwmon/guard_band_mbps 0
@@ -38,7 +38,8 @@ on property:sys.boot_completed=1
     write /sys/class/devfreq/soc:qcom,llccbw/bw_hwmon/up_scale 250
     write /sys/class/devfreq/soc:qcom,llccbw/bw_hwmon/idle_mbps 1600
 
-    write /sys/class/devfreq/soc:qcom,mincpubw/governor "cpufreq"
+    write /sys/class/devfreq/soc:qcom,mincpubw/governor "compute"
+    write /sys/class/devfreq/soc:qcom,mincpubw/polling_interval 10
 
     # Enable memlat governor
     write /sys/class/devfreq/soc:qcom,memlat-cpu0/governor "mem_latency"
